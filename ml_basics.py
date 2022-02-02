@@ -37,3 +37,6 @@ print("\n")
 for column in star_data_raw.columns:
     print(column)
 print("\n")
+"""
+Prints the data headings, see basic_functions.print_info()
+"""
