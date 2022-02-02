@@ -8,6 +8,15 @@ First set up a virtual invironment
 Next make sure the interpreter is correct
     -> find interpreter path
 
+Generate gitignore
+    -> ctrl+shift+p , generate gitignore, select:
+        - macos
+        - virtualenv
+        - vscode
+        - visualstudio
+        - windows
+        - vs
+
 Next, create a way to run the files
     -> launch.json
 
