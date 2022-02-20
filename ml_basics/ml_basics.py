@@ -27,9 +27,9 @@ star_data_fp = osp.join("resources", "datasets", "star_classification.csv")
 star_data_raw = pd.read_csv(star_data_fp)
 
 
-# -----------------------------------------------------------------------------------------
-#                           ------- View raw data -------
-# -----------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+#                           ---------- View raw data ----------
+# -------------------------------------------------------------------------------------------
 
 
 # Print overview of data
@@ -60,9 +60,9 @@ print("\n")
 
 
 
-# -----------------------------------------------------------------------------------------
-#                    ------- Extracting Simple Information -------
-# -----------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+#                    ---------- Extracting Simple Information ----------
+# -------------------------------------------------------------------------------------------
 
 
 # Intention here is to pull out some key info about the dataset and maybe make some plots.
@@ -176,9 +176,9 @@ each_class_subplot(
 
 
 
-# -----------------------------------------------------------------------------------------
-#                      ------- Scrub Anomalous Data -------
-# -----------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------
+#                      ---------- Scrub Anomalous Data ----------
+# -------------------------------------------------------------------------------------------
 
 
 # If you look at the image 'green_red_filt', it is clear that there is an anomalous datapoint
@@ -199,17 +199,23 @@ outlier_score = pd.DataFrame()
 outlier_score["score"] = anomaly_score
 
 # Determine the threshold that classifies an anomalous datapoint
-# (10 was chosen by inspection of the data, I have no idea what is appropriate generally)
+# NOTE: 10 was chosen by inspection of the data, I have no idea what is appropriate generally
 threshold = 10
+
+# filter_func makes a 'filter' of True/False depending on the right hand side
 filter_func = abs(outlier_score["score"]) > threshold
+
+# Apply the filter to the outlier scores
 outlier_indecies = outlier_score[filter_func].index.tolist()
 
 print("Elements that have been determined to be anomalous have indecies:")
 print(outlier_indecies)
 
+# Loop through indecies and drop the offensing datapoints
 for ind in outlier_indecies:
     star_df = star_df.drop(star_df.index[ind], axis=0)
 
+# Make another plot to check the anomalies have gone
 each_class_subplot(
     galaxy_df,
     qso_df,
