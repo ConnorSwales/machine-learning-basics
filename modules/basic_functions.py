@@ -23,4 +23,3 @@ def print_info(data):
 
     for column in data.columns:
         print(column)
-        print("\n")
