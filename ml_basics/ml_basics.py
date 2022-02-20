@@ -66,7 +66,7 @@ print("\n")
 
 
 # Intention here is to pull out some key info about the dataset and maybe make some plots.
-# No machine learning tactics are to be employed until the next section
+# No machine learning tactics are to be employed until a later section
 
 # Clean out the dataset by dropping entries with NaN entries
 # axis=0 -> drops rows with missing columns (removes the whole entry if one datapoint missing)
@@ -78,6 +78,7 @@ star_data = star_data_raw.dropna(axis=0)
 star_data = star_data[['alpha', 'delta', 'u', 'g', 'r', 'i', 'z','class','redshift']]
 funcs.print_info(star_data)
 
+
 # star_data has 3 possible values for the column 'class'
     # - GALAXY
     # - QSO (Quasar)
@@ -85,11 +86,9 @@ funcs.print_info(star_data)
 # This appears to be the best choice for our target for the ML algorithms down the line
 # i.e: is this object a star, quasar or galaxy? (based on *some* data)
 
-
 # Make a seperate DataFrame for each object class
 galaxy_df = star_data[star_data["class"] == "GALAXY"]
 galaxy_df = galaxy_df.drop(columns=["class"])
-
 print("\nGalaxies:")
 print("\n    Info:")
 print(galaxy_df.describe())
@@ -149,7 +148,7 @@ def each_class_subplot(galaxy_df, qso_df, star_df, *, title=None, x, y, color, f
 
     plt.savefig(osp.join("ml_basics", "outputs", f"{filename}.png"))
 
-
+# Make plots
 each_class_subplot(
     galaxy_df,
     qso_df,
@@ -181,7 +180,7 @@ each_class_subplot(
 # -------------------------------------------------------------------------------------------
 
 
-# If you look at the image 'green_red_filt', it is clear that there is an anomalous datapoint
+# If you look at the image 'green_red_filt_anom', it is clear that there is an anomalous datapoint
 # in the 'stars' panel. Let's try get rid of it
 
 # Sklearn package has a submodule named 'neighbors', all to do with applying nearest neighbors algorithms
