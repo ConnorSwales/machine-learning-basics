@@ -2,8 +2,11 @@
 #import numpy as np
 #import scipy as sp
 import pandas as pd
-#import sklearn as sk
-import sklearn.neighbors as sk_nb
+
+# Sklearn imports
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
 
 # Functionality imports
 import matplotlib.pyplot as plt # plotting
@@ -86,8 +89,28 @@ funcs.print_info(star_data)
 # This appears to be the best choice for our target for the ML algorithms down the line
 # i.e: is this object a star, quasar or galaxy? (based on *some* data)
 
+# Create a simple mapping off the class types to the numbers 0,1,2, as most treatments coming up
+# don't appreciate strings
+
+class_mapping = {
+    "GALAXY": 0,
+    "QSO": 1,
+    "STAR": 2
+}
+
+# Create a backwards mapping for returning back to the class strings
+class_mapping_back = {k:v for v,k in class_mapping.items()}
+
+star_data["class"] = [
+    class_mapping["GALAXY"] if i == "GALAXY"
+    else class_mapping["QSO"]  if i == "QSO"
+    else class_mapping["STAR"]
+    for i in star_data["class"]
+]
+
+
 # Make a seperate DataFrame for each object class
-galaxy_df = star_data[star_data["class"] == "GALAXY"]
+galaxy_df = star_data[star_data["class"] == class_mapping["GALAXY"]]
 galaxy_df = galaxy_df.drop(columns=["class"])
 print("\nGalaxies:")
 print("\n    Info:")
@@ -95,7 +118,7 @@ print(galaxy_df.describe())
 print("\n    Head:")
 print(galaxy_df.head(5))
 
-qso_df = star_data[star_data["class"] == "QSO"]
+qso_df = star_data[star_data["class"] == class_mapping["QSO"]]
 qso_df = qso_df.drop(columns=["class"])
 print("\nQuasars: ")
 print("\n    Info:")
@@ -104,7 +127,7 @@ print("\n    Head:")
 print(qso_df.head(5))
 
 
-star_df = star_data[star_data["class"] == "STAR"]
+star_df = star_data[star_data["class"] == class_mapping["STAR"]]
 star_df = star_df.drop(columns=["class"])
 print("\nStars: ")
 print("\n    Info:")
@@ -187,8 +210,8 @@ each_class_subplot(
 # LocalOutlierFactor() assigns each datapoint a 'score' to do with how well it fits in with the other nearby points
 # NOTE: this func takes an optional arg 'n_neighbors'. Worth playing around with that to see how it effects things
 
-outlier_finder = sk_nb.LocalOutlierFactor()
-y_pred = outlier_finder.fit_predict(star_df)
+outlier_finder = LocalOutlierFactor()
+y_pred = outlier_finder.fit_predict(star_data)
 
 # Create the anomaly_score
 anomaly_score = outlier_finder.negative_outlier_factor_
@@ -207,12 +230,22 @@ filter_func = abs(outlier_score["score"]) > threshold
 # Apply the filter to the outlier scores
 outlier_indecies = outlier_score[filter_func].index.tolist()
 
-print("Elements that have been determined to be anomalous have indecies:")
+print("\nElements that have been determined to be anomalous have indecies:")
 print(outlier_indecies)
 
 # Loop through indecies and drop the offensing datapoints
 for ind in outlier_indecies:
-    star_df = star_df.drop(star_df.index[ind], axis=0)
+    star_data = star_data.drop(star_data.index[ind], axis=0)
+
+
+# Remake the star class DataFrame with the new, cleaned data
+star_df = star_data[star_data["class"] == class_mapping["STAR"]]
+star_df = star_df.drop(columns=["class"])
+print("\nStars: ")
+print("\n    Info:")
+print(star_df.describe())
+print("\n    Head:")
+print(star_df.head(5))
 
 # Make another plot to check the anomalies have gone
 each_class_subplot(
@@ -225,3 +258,37 @@ each_class_subplot(
     color="g",
     filename="green_red_filt_fixed"
 )
+
+
+
+# -------------------------------------------------------------------------------------------
+#                      ---------- Simple ML Treatment ----------
+# -------------------------------------------------------------------------------------------
+
+X = star_data.drop(columns=["class"])
+y = star_data["class"]
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.1)
+
+
+# Define model. Specify a number for random_state to ensure same results each run
+_model = DecisionTreeRegressor(random_state=1)
+
+# Fit model
+_model.fit(X, y)
+
+
+print("Making predictions for the following 15 stellar objects:")
+print(star_data.head(15))
+print("The predictions are")
+print(_model.predict(X.head(15)))
+
+# Testing
+
+classes = star_data["class"].to_frame()
+classes["predicted_class"] = _model.predict(X)
+
+correct_guesses = classes[classes["class"] == classes["predicted_class"]]
+
+percentage_correct = correct_guesses.shape[0]/classes.shape[0] * 100
+
+print(f"\nPercentage Correct: {percentage_correct}")
