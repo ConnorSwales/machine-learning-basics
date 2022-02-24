@@ -77,7 +77,9 @@ print("\n")
 star_data = star_data_raw.dropna(axis=0)
 
 # The star_data has many columns that describe meta-data things like run_ID, camera information, id numbers etc
-# Remove all of these to leave interesting columns
+# Remove all of these to leave interesting columns (we need to keep the obj_ID in a serperate series
+# for verification later)
+object_ids = star_data['obj_ID']
 star_data = star_data[['alpha', 'delta', 'u', 'g', 'r', 'i', 'z','class','redshift']]
 funcs.print_info(star_data)
 
@@ -265,30 +267,53 @@ each_class_subplot(
 #                      ---------- Simple ML Treatment ----------
 # -------------------------------------------------------------------------------------------
 
+# Split all the data into the 'data' X and the 'target' y
+
+# This business with the object ids is a bit messy. We need to have info on which objects are which
+# in order to verify the quality of the algorithm, however if we feed them into the algorithm
+# it'ss use them as a feature and it will all become fucked up
+
+star_data["obj_ID"] = object_ids
+star_data = star_data.drop_duplicates(subset="obj_ID")
+
+
 X = star_data.drop(columns=["class"])
 y = star_data["class"]
-X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.1)
 
+# I know this is horrible
+X_train_with_id, X_val_with_id, y_train_with_id, y_val_with_id = train_test_split(X, y, random_state=0, test_size=0.01)
+
+X_train = X_train_with_id.drop(columns=["obj_ID"])
+X_val = X_val_with_id.drop(columns=["obj_ID"])
+y_train = y_train_with_id.drop(columns=["obj_ID"])
+y_val = y_val_with_id.drop(columns=["obj_ID"])
 
 # Define model. Specify a number for random_state to ensure same results each run
-_model = DecisionTreeRegressor(random_state=1)
+_model = DecisionTreeRegressor(random_state=0)
 
 # Fit model
-_model.fit(X, y)
+_model.fit(X_train, y_train)
 
-
-print("Making predictions for the following 15 stellar objects:")
-print(star_data.head(15))
+num_shown = 10
+print("Making predictions for the following {num_shown} stellar objects:")
+print(X_val.head(num_shown))
 print("The predictions are")
-print(_model.predict(X.head(15)))
+print(_model.predict(X_val.head(num_shown)))
 
-# Testing
+# Testing predictions across the entire dataset
 
-classes = star_data["class"].to_frame()
-classes["predicted_class"] = _model.predict(X)
+# Take the actual classes column from the original data...
+classes = star_data["class"][star_data.obj_ID.isin(X_val_with_id["obj_ID"])].to_frame()
 
+
+#... and stick next to it the results of our predicted classes...
+classes["predicted_class"] = _model.predict(X_val)
+
+# ... and check how many are the same
 correct_guesses = classes[classes["class"] == classes["predicted_class"]]
 
 percentage_correct = correct_guesses.shape[0]/classes.shape[0] * 100
 
 print(f"\nPercentage Correct: {percentage_correct}")
+
+# 43% ACCURATE! SHITTY MACHINE LEARNING BUT IT WORKS
