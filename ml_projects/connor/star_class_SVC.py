@@ -6,7 +6,7 @@ import pandas as pd
 # Sklearn imports
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC, LinearSVC
 
 # Functionality imports
 import os.path as osp # useful for joining filepaths
@@ -82,7 +82,7 @@ X = star_data.drop(columns=["class"])
 y = star_data["class"]
 
 
-def random_forest_tester(X, y, *, test_size=None, n_estimators):
+def SVC_tester(X, y, *, test_size=None):
 
     X_train_with_id, X_val_with_id, y_train_with_id, y_val_with_id = train_test_split(
         X,
@@ -94,31 +94,23 @@ def random_forest_tester(X, y, *, test_size=None, n_estimators):
     X_train = X_train_with_id.drop(columns=["obj_ID"])
     X_val = X_val_with_id.drop(columns=["obj_ID"])
     y_train = y_train_with_id.drop(columns=["obj_ID"])
+    y_val = y_val_with_id.drop(columns=["obj_ID"])
 
-    # Define model. Specify a number for random_state to ensure same results each run
-    _model = RandomForestClassifier(random_state=0, n_estimators=n_estimators)
+    svm_clf = SVC(kernel='rbf', C=1, random_state=0)
+    svm_clf.fit(X_train,y_train)
+    predicted = svm_clf.predict(X_val)
+    score = svm_clf.score(X_val, y_val)
+    svm_score_ = np.mean(score)
 
-    # Fit model
-    _model = _model.fit(X_train, y_train)
-
-    # Take the actual classes column from the original data...
-    classes = star_data["class"][star_data.obj_ID.isin(X_val_with_id["obj_ID"])].to_frame()
-    classes["predicted_class"] = _model.predict(X_val)
-    correct_guesses = classes[classes["class"] == classes["predicted_class"]]
-    percentage_correct = correct_guesses.shape[0]/classes.shape[0] * 100
-
-    return percentage_correct
+    print('Accuracy : %.3f' % (svm_score_))
 
 
-correctness = {
-    "variable": [],
-    "result": []
-}
+_vars = [0]
 
-
-for estimator in [5, 10, 50, 100, 200, 500]:
-    _result = random_forest_tester(X, y, test_size=None, n_estimators=estimator)
-    correctness["variable"].append(estimator)
+correctness = {"variable": [], "result": []}
+for variable in _vars:
+    _result = SVC_tester(X, y, test_size=None)
+    correctness["variable"].append(variable)
     correctness["result"].append(_result)
 
 
