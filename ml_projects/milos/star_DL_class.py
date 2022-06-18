@@ -9,16 +9,28 @@ sys.path.append('modules')
 import numpy as np
 import scipy as sp
 import pandas as pd
+
 # Sklearn imports
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
-from tensorflow import keras 
-from tensorflow.keras import keras
 #from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, plot_tree
 from sklearn.preprocessing import OneHotEncoder # OHEncoding used for categorical non-ordinal variables
 from sklearn.metrics import mean_absolute_error
+
+from tensorflow import keras 
+from keras import layers 
+from keras import callbacks
+from keras import metrics
+
+import matplotlib.pyplot as plt
+plt.style.use('seaborn-whitegrid')
+# Set Matplotlib defaults
+plt.rc('figure', autolayout=True)
+plt.rc('axes', labelweight='bold', labelsize='large',
+       titleweight='bold', titlesize=18, titlepad=10)
+plt.rc('animation', html='html5')
 
 # Functionality imports
 import os.path as osp # useful for joining filepaths
@@ -65,3 +77,47 @@ X_train_with_id, X_val_with_id, y_train_with_id, y_val_with_id = train_test_spli
         random_state=0,
     )
 
+
+a =1
+input_shape = [X_train_with_id.shape[1]]
+model_DL = keras.Sequential([
+    layers.BatchNormalization(input_shape = input_shape),
+    layers.Dense(512, activation='relu'),
+    layers.BatchNormalization(),
+    layers.Dense(512, activation='relu'),
+    layers.BatchNormalization(),
+    layers.Dense(512, activation='relu'),
+    layers.BatchNormalization(),
+    layers.Dense(1),
+])
+
+model_DL.compile(
+    optimizer='sgd',
+    loss='mse',
+    metrics = ['categorical_accuracy']
+)
+early_stopping = callbacks.EarlyStopping(
+    min_delta=0.001, # minimium amount of change to count as an improvement
+    patience=5, # how many epochs to wait before stopping
+    restore_best_weights=True,
+)
+EPOCHS = 25
+history = model_DL.fit(
+    X_train_with_id, y_train_with_id,
+    validation_data=(X_val_with_id, y_val_with_id),
+    batch_size=64,
+    epochs=EPOCHS,
+    callbacks=[early_stopping],
+    verbose=1,
+)
+
+
+history_df = pd.DataFrame(history.history)
+# Start the plot at epoch 5
+history_df.loc[5:, ['loss', 'val_loss']].plot()
+history_df.loc[5:, ['categorical_accuracy', 'val_categorical_accuracy']].plot()
+
+print(("Best Validation Loss: {:0.4f}" +\
+      "\nBest Validation Accuracy: {:0.4f}")\
+      .format(history_df['val_loss'].min(), 
+              history_df['val_categorical_accuracy'].max()))
