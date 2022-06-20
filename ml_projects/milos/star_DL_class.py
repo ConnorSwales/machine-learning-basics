@@ -10,6 +10,7 @@ import numpy as np
 import scipy as sp
 import pandas as pd
 
+a = 1
 # Sklearn imports
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.model_selection import train_test_split
