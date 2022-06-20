@@ -15,6 +15,7 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import MinMaxScaler
 #from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier, plot_tree
 from sklearn.preprocessing import OneHotEncoder # OHEncoding used for categorical non-ordinal variables
 from sklearn.metrics import mean_absolute_error
@@ -66,34 +67,39 @@ OH_star_data = pd.concat([num_star_data, OH_cols_star_data], axis=1)
 # QSO -> 1, 
 # STAR -> 2
 
-X = OH_star_data.drop(columns=[0,1,2])
+temp_X = OH_star_data.drop(columns=[0,1,2])
+scaler = MinMaxScaler(feature_range=(-1,1))
+
+scaler.fit(temp_X)
+X = pd.DataFrame(scaler.fit_transform(temp_X))
+
 print(X.head(n=10))
 y = pd.DataFrame([OH_star_data[0], OH_star_data[1], OH_star_data[2]]).transpose() #need better way to do this
 print(y.head(n=10))
 
-X_train_with_id, X_val_with_id, y_train_with_id, y_val_with_id = train_test_split(
-        X,
-        y,
-        random_state=0,
-    )
+# X_train_with_id, X_val_with_id, y_train_with_id, y_val_with_id = train_test_split(
+#         X,
+#         y,
+#         random_state=0,
+#     )
 
 
 a =1
-input_shape = [X_train_with_id.shape[1]]
+input_shape = [X.shape[1]]
 model_DL = keras.Sequential([
     layers.BatchNormalization(input_shape = input_shape),
-    layers.Dense(512, activation='relu'),
+    layers.Dense(64, activation='relu'),
+    layers.Dropout(0.3),
     layers.BatchNormalization(),
-    layers.Dense(512, activation='relu'),
+    layers.Dense(64, activation='relu'),
+    layers.Dropout(0.3),
     layers.BatchNormalization(),
-    layers.Dense(512, activation='relu'),
-    layers.BatchNormalization(),
-    layers.Dense(1),
+    layers.Dense(3, activation = 'softmax'),
 ])
 
 model_DL.compile(
-    optimizer='sgd',
-    loss='mse',
+    optimizer='adam',
+    loss='categorical_hinge',
     metrics = ['categorical_accuracy']
 )
 early_stopping = callbacks.EarlyStopping(
@@ -101,22 +107,22 @@ early_stopping = callbacks.EarlyStopping(
     patience=5, # how many epochs to wait before stopping
     restore_best_weights=True,
 )
-EPOCHS = 25
+EPOCHS = 30
 history = model_DL.fit(
-    X_train_with_id, y_train_with_id,
-    validation_data=(X_val_with_id, y_val_with_id),
-    batch_size=64,
+    X, y,
+    validation_split = 0.2,
+    batch_size=32,
     epochs=EPOCHS,
     callbacks=[early_stopping],
     verbose=1,
 )
-
+a = 1
 
 history_df = pd.DataFrame(history.history)
 # Start the plot at epoch 5
-history_df.loc[5:, ['loss', 'val_loss']].plot()
-history_df.loc[5:, ['categorical_accuracy', 'val_categorical_accuracy']].plot()
-
+history_df.loc[1:, ['categorical_accuracy', 'val_categorical_accuracy']].plot(xlabel='epoch', ylabel='categorical accuracy')
+history_df.loc[0:, ['loss', 'val_loss']].plot(xlabel='epoch', ylabel='loss')
+plt.show 
 print(("Best Validation Loss: {:0.4f}" +\
       "\nBest Validation Accuracy: {:0.4f}")\
       .format(history_df['val_loss'].min(), 
